@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "q4bmaW11G-cODTIjIia-3"
+uri = "file://artifacts/mobile-app/assets/images/icon.png"
+type = "image"
+title = "edupress app icon"

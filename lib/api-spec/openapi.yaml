@@ -1,0 +1,921 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Interactive Learning Platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: series
+    description: Book series management
+  - name: classes
+    description: Class-level content management
+  - name: content
+    description: Content items (videos, PDFs, worksheets, answer keys)
+  - name: questions
+    description: Worksheet questions
+  - name: auth
+    description: Admin authentication
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: adminLogin
+      tags: [auth]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: adminLogout
+      tags: [auth]
+      summary: Admin logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current admin
+      responses:
+        "200":
+          description: Current admin info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Admin"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /series:
+    get:
+      operationId: listSeries
+      tags: [series]
+      summary: List all book series
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of series
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Series"
+    post:
+      operationId: createSeries
+      tags: [series]
+      summary: Create a new series (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSeriesRequest"
+      responses:
+        "201":
+          description: Series created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Series"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /series/{seriesId}:
+    get:
+      operationId: getSeries
+      tags: [series]
+      summary: Get a series with its classes
+      parameters:
+        - name: seriesId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Series detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeriesWithClasses"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateSeries
+      tags: [series]
+      summary: Update a series (admin)
+      parameters:
+        - name: seriesId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSeriesRequest"
+      responses:
+        "200":
+          description: Series updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Series"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteSeries
+      tags: [series]
+      summary: Delete a series (admin)
+      parameters:
+        - name: seriesId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /series/{seriesId}/classes:
+    get:
+      operationId: listClasses
+      tags: [classes]
+      summary: List classes in a series
+      parameters:
+        - name: seriesId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of classes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Class"
+    post:
+      operationId: createClass
+      tags: [classes]
+      summary: Create a class level (admin)
+      parameters:
+        - name: seriesId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassRequest"
+      responses:
+        "201":
+          description: Class created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Class"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /classes/{classId}:
+    get:
+      operationId: getClass
+      tags: [classes]
+      summary: Get class with content
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Class detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassWithContent"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateClass
+      tags: [classes]
+      summary: Update a class (admin)
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClassRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Class"
+    delete:
+      operationId: deleteClass
+      tags: [classes]
+      summary: Delete a class (admin)
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /classes/{classId}/content:
+    get:
+      operationId: listContent
+      tags: [content]
+      summary: List content items for a class
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/ContentType"
+      responses:
+        "200":
+          description: Content items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentItem"
+    post:
+      operationId: createContent
+      tags: [content]
+      summary: Add a content item (admin)
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContentRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentItem"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /content/{contentId}:
+    get:
+      operationId: getContent
+      tags: [content]
+      summary: Get a content item
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Content item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentItem"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateContent
+      tags: [content]
+      summary: Update a content item (admin)
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContentRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentItem"
+    delete:
+      operationId: deleteContent
+      tags: [content]
+      summary: Delete a content item (admin)
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /content/{contentId}/questions:
+    get:
+      operationId: listQuestions
+      tags: [questions]
+      summary: List worksheet questions
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Questions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Question"
+    post:
+      operationId: createQuestion
+      tags: [questions]
+      summary: Add a worksheet question (admin)
+      parameters:
+        - name: contentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateQuestionRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Question"
+
+  /questions/{questionId}:
+    put:
+      operationId: updateQuestion
+      tags: [questions]
+      summary: Update a question (admin)
+      parameters:
+        - name: questionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateQuestionRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Question"
+    delete:
+      operationId: deleteQuestion
+      tags: [questions]
+      summary: Delete a question (admin)
+      parameters:
+        - name: questionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [series]
+      summary: Admin dashboard summary stats
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error]
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required: [success]
+
+    ContentType:
+      type: string
+      enum: [video, pdf, worksheet, answer_key]
+
+    QuestionType:
+      type: string
+      enum: [mcq, fill_blank, true_false, short_answer]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+      required: [email, password]
+
+    LoginResponse:
+      type: object
+      properties:
+        admin:
+          $ref: "#/components/schemas/Admin"
+        token:
+          type: string
+      required: [admin, token]
+
+    Admin:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+      required: [id, email, name]
+
+    Series:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        coverImageUrl:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        classCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, slug, classCount, createdAt]
+
+    SeriesWithClasses:
+      allOf:
+        - $ref: "#/components/schemas/Series"
+        - type: object
+          properties:
+            classes:
+              type: array
+              items:
+                $ref: "#/components/schemas/Class"
+          required: [classes]
+
+    CreateSeriesRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        slug:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          nullable: true
+        coverImageUrl:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+      required: [name, slug]
+
+    UpdateSeriesRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        coverImageUrl:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+
+    Class:
+      type: object
+      properties:
+        id:
+          type: integer
+        seriesId:
+          type: integer
+        classLevel:
+          type: string
+        label:
+          type: string
+        sortOrder:
+          type: integer
+        contentCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, seriesId, classLevel, label, sortOrder, contentCount, createdAt]
+
+    ClassWithContent:
+      allOf:
+        - $ref: "#/components/schemas/Class"
+        - type: object
+          properties:
+            seriesName:
+              type: string
+            content:
+              type: array
+              items:
+                $ref: "#/components/schemas/ContentItem"
+          required: [seriesName, content]
+
+    CreateClassRequest:
+      type: object
+      properties:
+        classLevel:
+          type: string
+          minLength: 1
+        label:
+          type: string
+          minLength: 1
+        sortOrder:
+          type: integer
+      required: [classLevel, label]
+
+    UpdateClassRequest:
+      type: object
+      properties:
+        classLevel:
+          type: string
+        label:
+          type: string
+        sortOrder:
+          type: integer
+
+    ContentItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        classId:
+          type: integer
+        type:
+          $ref: "#/components/schemas/ContentType"
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        fileUrl:
+          type: string
+          nullable: true
+        thumbnailUrl:
+          type: string
+          nullable: true
+        duration:
+          type: string
+          nullable: true
+        sortOrder:
+          type: integer
+        questionCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, classId, type, title, sortOrder, questionCount, createdAt]
+
+    CreateContentRequest:
+      type: object
+      properties:
+        type:
+          $ref: "#/components/schemas/ContentType"
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          nullable: true
+        fileUrl:
+          type: string
+          nullable: true
+        thumbnailUrl:
+          type: string
+          nullable: true
+        duration:
+          type: string
+          nullable: true
+        sortOrder:
+          type: integer
+      required: [type, title]
+
+    UpdateContentRequest:
+      type: object
+      properties:
+        type:
+          $ref: "#/components/schemas/ContentType"
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        fileUrl:
+          type: string
+          nullable: true
+        thumbnailUrl:
+          type: string
+          nullable: true
+        duration:
+          type: string
+          nullable: true
+        sortOrder:
+          type: integer
+
+    Question:
+      type: object
+      properties:
+        id:
+          type: integer
+        contentId:
+          type: integer
+        questionType:
+          $ref: "#/components/schemas/QuestionType"
+        questionText:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+          nullable: true
+        correctAnswer:
+          type: string
+        explanation:
+          type: string
+          nullable: true
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, contentId, questionType, questionText, correctAnswer, sortOrder, createdAt]
+
+    CreateQuestionRequest:
+      type: object
+      properties:
+        questionType:
+          $ref: "#/components/schemas/QuestionType"
+        questionText:
+          type: string
+          minLength: 1
+        options:
+          type: array
+          items:
+            type: string
+          nullable: true
+        correctAnswer:
+          type: string
+          minLength: 1
+        explanation:
+          type: string
+          nullable: true
+        sortOrder:
+          type: integer
+      required: [questionType, questionText, correctAnswer]
+
+    UpdateQuestionRequest:
+      type: object
+      properties:
+        questionType:
+          $ref: "#/components/schemas/QuestionType"
+        questionText:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+          nullable: true
+        correctAnswer:
+          type: string
+        explanation:
+          type: string
+          nullable: true
+        sortOrder:
+          type: integer
+
+    DashboardStats:
+      type: object
+      properties:
+        totalSeries:
+          type: integer
+        totalClasses:
+          type: integer
+        totalVideos:
+          type: integer
+        totalPdfs:
+          type: integer
+        totalWorksheets:
+          type: integer
+        totalAnswerKeys:
+          type: integer
+        totalQuestions:
+          type: integer
+        recentSeries:
+          type: array
+          items:
+            $ref: "#/components/schemas/Series"
+      required:
+        - totalSeries
+        - totalClasses
+        - totalVideos
+        - totalPdfs
+        - totalWorksheets
+        - totalAnswerKeys
+        - totalQuestions
+        - recentSeries
