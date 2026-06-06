@@ -22,8 +22,7 @@ jobs:
         run: npm install -g pnpm
 
       - name: Install dependencies
-        run: pnpm install
-
+        run: pnpm install --no-frozen-lockfile
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
