@@ -1,9 +1,9 @@
 import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
-import { SymbolView } from "expo-symbols";
 import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
+import { useColorScheme } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 
@@ -28,40 +28,42 @@ export default function TabLayout() {
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
         },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView
-              intensity={100}
-              tint={isDark ? "dark" : "light"}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : isWeb ? (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]} />
-          ) : null,
+        tabBarBackground: isIOS
+          ? () => (
+              <BlurView
+                intensity={100}
+                tint={isDark ? "dark" : "light"}
+                style={StyleSheet.absoluteFill}
+              />
+            )
+          : isWeb
+          ? () => (
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  { backgroundColor: colors.background },
+                ]}
+              />
+            )
+          : undefined,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Browse",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="books.vertical" tintColor={color} size={24} />
-            ) : (
-              <Feather name="book-open" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color }) => (
+            <Feather name="book-open" size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="admin"
         options={{
           title: "Admin",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="person.badge.key" tintColor={color} size={24} />
-            ) : (
-              <FontAwesome5 name="user-shield" size={20} color={color} />
-            ),
+          tabBarIcon: ({ color }) => (
+            <FontAwesome5 name="user-shield" size={20} color={color} />
+          ),
         }}
       />
     </Tabs>
