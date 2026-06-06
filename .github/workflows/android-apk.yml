@@ -22,26 +22,29 @@ jobs:
         run: npm install -g pnpm
 
       - name: Install dependencies
+        working-directory: artifacts/mobile-app
         run: pnpm install --no-frozen-lockfile
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Setup Expo
+      - name: Setup Expo CLI
         run: npm install -g expo-cli eas-cli
 
       - name: Prebuild Android
+        working-directory: artifacts/mobile-app
         run: npx expo prebuild --clean
 
       - name: Build APK
-        run: cd android && ./gradlew assembleDebug
+        working-directory: artifacts/mobile-app/android
+        run: ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: android/app/build/outputs/apk/debug/*.apk
-
+          path: artifacts/mobile-app/android/app/build/outputs/apk/debug/
 
