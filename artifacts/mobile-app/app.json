@@ -18,18 +18,17 @@
       "bundleIdentifier": "com.anonymous.mobileapp"
     },
     "android": {
-      "package": "com.anonymous.mobileapp"
+      "package": "com.anonymous.mobileapp",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#ffffff"
+      }
     },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": "https://replit.com/"
-        }
-      ],
+      "expo-router",
       "expo-font",
       "expo-web-browser"
     ],
