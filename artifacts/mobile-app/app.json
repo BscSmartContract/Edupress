@@ -14,9 +14,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.anonymous.mobileapp"
     },
-    "android": {},
+    "android": {
+      "package": "com.anonymous.mobileapp"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
