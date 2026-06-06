@@ -19,11 +19,15 @@ jobs:
           node-version: 20
 
       - name: Install pnpm
-        run: npm install -g pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
-      - name: Install dependencies
-        working-directory: artifacts/mobile-app
+      - name: Install workspace dependencies
         run: pnpm install --no-frozen-lockfile
+
+      - name: Build workspace libs
+        run: pnpm run typecheck:libs
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -31,12 +35,11 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Setup Expo CLI
-        run: npm install -g expo-cli eas-cli
-
       - name: Prebuild Android
         working-directory: artifacts/mobile-app
-        run: npx expo prebuild --clean
+        env:
+          EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+        run: npx expo prebuild --platform android --clean
 
       - name: Build APK
         working-directory: artifacts/mobile-app/android
@@ -47,4 +50,3 @@ jobs:
         with:
           name: app-debug-apk
           path: artifacts/mobile-app/android/app/build/outputs/apk/debug/
-
