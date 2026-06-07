@@ -23,7 +23,6 @@ jobs:
         with:
           version: 10
 
-      # ── Cache 1: pnpm package store ─────────────────────────────────────────
       - name: Get pnpm store path
         id: pnpm-store
         run: echo "dir=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
@@ -47,7 +46,6 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # ── Cache 2: Gradle wrapper binary ──────────────────────────────────────
       - name: Cache Gradle wrapper
         uses: actions/cache@v4
         with:
@@ -55,7 +53,6 @@ jobs:
           key: gradle-wrapper-${{ runner.os }}-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: gradle-wrapper-${{ runner.os }}-
 
-      # ── Cache 3: Gradle dependency & build caches ───────────────────────────
       - name: Cache Gradle caches
         uses: actions/cache@v4
         with:
@@ -65,8 +62,6 @@ jobs:
           key: gradle-caches-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/buildSrc/**') }}
           restore-keys: gradle-caches-${{ runner.os }}-
 
-      # ── Cache 4: Expo prebuild output (android/ directory) ──────────────────
-      # v3 busts the old cache that was created with a different dependency set.
       - name: Cache Expo prebuild
         id: prebuild-cache
         uses: actions/cache@v4
@@ -86,12 +81,6 @@ jobs:
             npx expo prebuild --platform android --clean
           fi
 
-      # ── Build debug APK ──────────────────────────────────────────────────────
-      # assembleDebug uses automatic debug keystore signing — no keytool needed.
-      # arm64-v8a only: covers ~99 % of modern Android devices and cuts
-      # build time by ~3-4 min vs building all four ABI slices.
-      # NOTE: --configuration-cache is intentionally omitted — React Native's
-      # Gradle scripts invoke Node at configuration time, which that flag forbids.
       - name: Build APK
         working-directory: artifacts/mobile-app/android
         run: |
@@ -101,9 +90,24 @@ jobs:
             --no-daemon \
             -Pandroid.injected.build.abi=arm64-v8a
 
+      - name: Find APK
+        run: |
+          echo "Searching for APK files..."
+          find . -type f -name "*.apk"
+
+      - name: Verify APK Exists
+        run: |
+          APK_COUNT=$(find . -type f -name "*.apk" | wc -l)
+          echo "Found $APK_COUNT APK(s)"
+          if [ "$APK_COUNT" -eq 0 ]; then
+            echo "No APK files found!"
+            exit 1
+          fi
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: edupress-debug-arm64
-          path: artifacts/mobile-app/android/app/build/outputs/apk/debug/
+          path: |
+            **/*.apk
           retention-days: 7
