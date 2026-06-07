@@ -24,8 +24,6 @@ jobs:
           version: 10
 
       # ── Cache 1: pnpm package store ─────────────────────────────────────────
-      # Saves ~2-4 min: avoids re-downloading all npm packages on every run.
-      # Key is the full lockfile hash so any dependency change busts the cache.
       - name: Get pnpm store path
         id: pnpm-store
         run: echo "dir=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
@@ -50,7 +48,6 @@ jobs:
           java-version: 17
 
       # ── Cache 2: Gradle wrapper binary ──────────────────────────────────────
-      # Saves ~1 min: avoids re-downloading the Gradle distribution zip.
       - name: Cache Gradle wrapper
         uses: actions/cache@v4
         with:
@@ -59,8 +56,6 @@ jobs:
           restore-keys: gradle-wrapper-${{ runner.os }}-
 
       # ── Cache 3: Gradle dependency & build caches ───────────────────────────
-      # Saves ~3-6 min: avoids re-downloading Android build tools, AGP, and
-      # all transitive Maven dependencies on every run.
       - name: Cache Gradle caches
         uses: actions/cache@v4
         with:
@@ -71,16 +66,14 @@ jobs:
           restore-keys: gradle-caches-${{ runner.os }}-
 
       # ── Cache 4: Expo prebuild output (android/ directory) ──────────────────
-      # Saves ~1 min: skips native project regeneration when app.json and
-      # package.json haven't changed.  If the cache hits we skip --clean so
-      # Gradle's incremental build can also do less work.
+      # v3 busts the old cache that was created with a different dependency set.
       - name: Cache Expo prebuild
         id: prebuild-cache
         uses: actions/cache@v4
         with:
           path: artifacts/mobile-app/android
-          key: expo-prebuild-${{ runner.os }}-${{ hashFiles('artifacts/mobile-app/app.json', 'artifacts/mobile-app/package.json') }}
-          restore-keys: expo-prebuild-${{ runner.os }}-
+          key: expo-prebuild-v3-${{ runner.os }}-${{ hashFiles('artifacts/mobile-app/app.json', 'artifacts/mobile-app/package.json') }}
+          restore-keys: expo-prebuild-v3-${{ runner.os }}-
 
       - name: Prebuild Android
         working-directory: artifacts/mobile-app
@@ -93,48 +86,24 @@ jobs:
             npx expo prebuild --platform android --clean
           fi
 
-      # ── Build APK ────────────────────────────────────────────────────────────
-      # --build-cache  reuses task outputs from previous Gradle runs.
-      # --parallel     compiles independent modules concurrently.
-      # --no-daemon    avoids leaving a background process on the runner.
-      # -Pandroid.injected.build.abi=arm64-v8a
-      #   Builds only the ARM64 slice (covers ~99% of modern Android devices).
-      #   This cuts the APK from ~194 MB → ~40 MB and skips 3 CMake compilation
-      #   passes (armeabi-v7a, x86, x86_64), saving ~3-4 min of build time.
-      #   NOTE: --configuration-cache is intentionally omitted — React Native's
-      #   Gradle scripts call external `node` processes at configuration time,
-      #   which Gradle's configuration cache forbids.
-      # ── Ensure debug keystore exists (used to sign the release APK) ─────────
-      # Using the standard Android debug keystore lets anyone install the APK
-      # without setting up a production signing config.
-      - name: Create debug keystore
-        run: |
-          mkdir -p ~/.android
-          if [ ! -f ~/.android/debug.keystore ]; then
-            keytool -genkeypair -v \
-              -keystore ~/.android/debug.keystore \
-              -alias androiddebugkey \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass android -keypass android \
-              -dname "CN=Android Debug,O=Android,C=US"
-          fi
-
+      # ── Build debug APK ──────────────────────────────────────────────────────
+      # assembleDebug uses automatic debug keystore signing — no keytool needed.
+      # arm64-v8a only: covers ~99 % of modern Android devices and cuts
+      # build time by ~3-4 min vs building all four ABI slices.
+      # NOTE: --configuration-cache is intentionally omitted — React Native's
+      # Gradle scripts invoke Node at configuration time, which that flag forbids.
       - name: Build APK
         working-directory: artifacts/mobile-app/android
         run: |
-          ./gradlew assembleRelease \
+          ./gradlew assembleDebug \
             --build-cache \
             --parallel \
             --no-daemon \
-            -Pandroid.injected.build.abi=arm64-v8a \
-            -Pandroid.injected.signing.store.file=$HOME/.android/debug.keystore \
-            -Pandroid.injected.signing.store.password=android \
-            -Pandroid.injected.signing.key.alias=androiddebugkey \
-            -Pandroid.injected.signing.key.password=android
+            -Pandroid.injected.build.abi=arm64-v8a
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: edupress-release-arm64
-          path: artifacts/mobile-app/android/app/build/outputs/apk/release/
+          name: edupress-debug-arm64
+          path: artifacts/mobile-app/android/app/build/outputs/apk/debug/
           retention-days: 7
