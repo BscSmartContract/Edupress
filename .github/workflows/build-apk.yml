@@ -7,11 +7,21 @@ on:
 
 jobs:
   build:
-    name: Build APK with EAS
+    name: Build APK (local Gradle, no EAS)
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -25,16 +35,27 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        working-directory: .
 
-      - name: Setup EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Build shared libs
+        run: pnpm run typecheck:libs
 
-      - name: Build APK
-        run: eas build --platform android --profile preview --non-interactive --no-wait
+      - name: Generate native Android project
         working-directory: artifacts/mobile-app
         env:
           EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+        run: pnpm exec expo prebuild --platform android --clean --no-install
+
+      - name: Make Gradlew executable
+        working-directory: artifacts/mobile-app/android
+        run: chmod +x gradlew
+
+      - name: Build debug APK
+        working-directory: artifacts/mobile-app/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EduPress-debug-apk
+          path: artifacts/mobile-app/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
