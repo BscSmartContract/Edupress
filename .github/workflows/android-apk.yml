@@ -94,18 +94,24 @@ jobs:
           fi
 
       # ── Build APK ────────────────────────────────────────────────────────────
-      # --build-cache enables Gradle's local build cache so task outputs from
-      # previous runs are reused when inputs haven't changed.
-      # --parallel runs independent subprojects concurrently.
-      # --configuration-cache (Gradle 8+) caches the configuration phase.
+      # --build-cache  reuses task outputs from previous Gradle runs.
+      # --parallel     compiles independent modules concurrently.
+      # --no-daemon    avoids leaving a background process on the runner.
+      # -Pandroid.injected.build.abi=arm64-v8a
+      #   Builds only the ARM64 slice (covers ~99% of modern Android devices).
+      #   This cuts the APK from ~194 MB → ~40 MB and skips 3 CMake compilation
+      #   passes (armeabi-v7a, x86, x86_64), saving ~3-4 min of build time.
+      #   NOTE: --configuration-cache is intentionally omitted — React Native's
+      #   Gradle scripts call external `node` processes at configuration time,
+      #   which Gradle's configuration cache forbids.
       - name: Build APK
         working-directory: artifacts/mobile-app/android
         run: |
           ./gradlew assembleDebug \
             --build-cache \
             --parallel \
-            --configuration-cache \
-            --no-daemon
+            --no-daemon \
+            -Pandroid.injected.build.abi=arm64-v8a
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
